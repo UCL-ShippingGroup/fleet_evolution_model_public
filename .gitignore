@@ -1,0 +1,14 @@
+/archive/
+/ref/
+
+.DS_Store
+.idea/
+__pycache__/
+.ipynb_checkpoints/
+debug_log.txt
+/ /Users/
+/Users/
+data/output/results/version_9/zip_files
+data/output/results/version_10/zip_files
+output/fem_results/version_9/zip_files
+output/fem_results/version_10/zip_files
