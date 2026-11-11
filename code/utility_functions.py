@@ -230,3 +230,85 @@ def clean_results_for_plotting(
     assert len(df) == len(history_df_copy) * len(REG_REG_CLASSES), "Unexpected length of df after merge with history_df_copy"
 
     return df
+
+# Nature Sustainability figure specs: 88 mm (1 column) / 180 mm (2 columns) width,
+# text 5-7 pt sans-serif, editable vector PDFs (fonttype 42).
+MM = 1 / 25.4
+FIG_1COL = 88 * MM
+FIG_2COL = 180 * MM
+
+# Max figure height for captions under 150 words (NS artwork guide):
+# 180 mm for 1-column (88 mm wide) figures, 210 mm for 2-column (180 mm wide) figures.
+MAX_H_1COL = 180 * MM
+MAX_H_2COL = 210 * MM
+
+NATURE_RC = {
+    "font.family": "sans-serif",
+    "font.sans-serif": ["Arial", "Helvetica", "DejaVu Sans"],
+    "font.size": 7,
+    "axes.titlesize": 6,
+    "axes.labelsize": 6,
+    "xtick.labelsize": 6,
+    "ytick.labelsize": 6,
+    "legend.fontsize": 6,
+    "legend.title_fontsize": 7,
+    "axes.linewidth": 0.5,
+    "grid.linewidth": 0.3,
+    "lines.linewidth": 1,
+    "lines.markersize": 3,
+    "xtick.major.width": 0.5,
+    "ytick.major.width": 0.5,
+    "xtick.major.size": 2,
+    "ytick.major.size": 2,
+    "pdf.fonttype": 42,  # embed TrueType so text stays editable in Illustrator
+    "ps.fonttype": 42,
+    "savefig.dpi": 300,
+}
+
+
+def nature_style():
+    """Apply the Nature Sustainability figure style (fonts, sizes, line widths)."""
+    plt.close("all")
+    sns.set_theme(style="whitegrid", rc=NATURE_RC)
+
+
+def wrap_ticks(ax, width=10):
+    """Wrap long x tick labels onto multiple lines to keep panels narrow."""
+    ax.set_xticklabels(
+        [textwrap.fill(t.get_text(), width) for t in ax.get_xticklabels()]
+    )
+
+
+def save_figure(fig, name, source_data):
+    """Save the figure as a vector PDF and its underlying data as a source CSV."""
+    out = Path(FIGURE_PATH)
+    out.mkdir(parents=True, exist_ok=True)
+    fig.savefig(out / f"{name}.pdf", bbox_inches="tight")
+    source_data.to_csv(out / f"{name}_source_data.csv", index=False)
+    print(f"Saved {name}.pdf and {name}_source_data.csv to {out}")
+
+def boxplot_summary(data, group_cols, value_col):
+    """Summary statistics matching what sns.boxplot draws: Q1/median/Q3, the
+    whisker ends (largest/smallest value within 1.5 x IQR) and outlier count.
+    """
+    from matplotlib.cbook import boxplot_stats
+
+    rows = []
+    for keys, g in data.groupby(group_cols, observed=True):
+        if not isinstance(keys, tuple):
+            keys = (keys,)
+        values = g[value_col].dropna().values
+        stats = boxplot_stats(values)[0]
+        rows.append(
+            {
+                **dict(zip(group_cols, keys)),
+                "n": len(values),
+                "min_within_1_5_iqr": stats["whislo"],
+                "q1": stats["q1"],
+                "median": stats["med"],
+                "q3": stats["q3"],
+                "max_within_1_5_iqr": stats["whishi"],
+                "n_outliers": len(stats["fliers"]),
+            }
+        )
+    return pd.DataFrame(rows)
